@@ -1,0 +1,28 @@
+default_single_core: &default_single_core
+  Azure:
+    machine_type: Standard_D1
+    zone: East US
+    image: null
+
+default_100_gb: &default_100_gb
+  Azure:
+    disk_type: standard-disk
+    disk_size: 100
+    mount_point: /scratch
+
+hadoop_terasort: &hadoop_8_D1_100GB
+  description: Runs Terasort. Control the number of worker VMs with --num_vms.
+  vm_groups:
+    master:
+      vm_spec: *default_single_core
+      disk_spec: *default_100_gb
+      cloud: Azure
+    workers:
+      vm_spec: *default_single_core
+      disk_spec: *default_100_gb
+      cloud: Azure
+      vm_count: 8
+
+benchmarks:
+    - hadoop_terasort: *hadoop_8_D1_100GB
+
