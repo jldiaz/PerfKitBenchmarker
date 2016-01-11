@@ -1,0 +1,1 @@
+./pkb.py --benchmark_config_file=hadoop-config/D1_4.yaml --run_stage=run --timing_measurements=runtimes,timestamps --run_uri=$1 --terasort_num_rows=$2 $3
