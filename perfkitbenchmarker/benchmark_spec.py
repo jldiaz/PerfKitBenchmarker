@@ -15,37 +15,36 @@
 """Container for all data required for a benchmark to run."""
 
 import copy
-import logging
-import pickle
 import copy_reg
+import logging
 import os
+import pickle
 import thread
 import threading
 import uuid
-import provider_info
 
 from perfkitbenchmarker import configs
 from perfkitbenchmarker import context
 from perfkitbenchmarker import disk
 from perfkitbenchmarker import errors
 from perfkitbenchmarker import flags
+from perfkitbenchmarker import provider_info
+from perfkitbenchmarker import providers
 from perfkitbenchmarker import static_virtual_machine as static_vm
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
 
-from perfkitbenchmarker import providers  # NOQA
-
 
 def PickleLock(lock):
-    return UnPickleLock, (lock.locked(),)
+  return UnPickleLock, (lock.locked(),)
 
 
 def UnPickleLock(locked, *args):
-    lock = threading.Lock()
-    if locked:
-        if not lock.acquire(False):
-            raise pickle.UnpicklingError("Cannot acquire lock")
-    return lock
+  lock = threading.Lock()
+  if locked:
+    if not lock.acquire(False):
+      raise pickle.UnpicklingError('Cannot acquire lock')
+  return lock
 
 
 copy_reg.pickle(thread.LockType, PickleLock)
@@ -61,16 +60,6 @@ STATIC_VMS = 'static_vms'
 VM_SPEC = 'vm_spec'
 DISK_SPEC = 'disk_spec'
 
-GCP = 'GCP'
-AZURE = 'Azure'
-AWS = 'AWS'
-ALICLOUD = 'AliCloud'
-KUBERNETES = 'Kubernetes'
-DIGITALOCEAN = 'DigitalOcean'
-OPENSTACK = 'OpenStack'
-CLOUDSTACK = 'CloudStack'
-RACKSPACE = 'Rackspace'
-MESOS = 'Mesos'
 DEBIAN = 'debian'
 RHEL = 'rhel'
 WINDOWS = 'windows'
@@ -80,10 +69,9 @@ NOT_EXCLUDED = 'permissive'
 SKIP_CHECK = 'none'
 
 FLAGS = flags.FLAGS
-VALID_CLOUDS = [GCP, AZURE, AWS, DIGITALOCEAN, KUBERNETES, OPENSTACK,
-                RACKSPACE, CLOUDSTACK, ALICLOUD, MESOS]
-flags.DEFINE_enum('cloud', GCP,
-                  VALID_CLOUDS,
+
+flags.DEFINE_enum('cloud', providers.GCP,
+                  providers.VALID_CLOUDS,
                   'Name of the cloud to use.')
 flags.DEFINE_enum(
     'os_type', DEBIAN, [DEBIAN, RHEL, UBUNTU_CONTAINER, WINDOWS],
@@ -204,53 +192,47 @@ class BenchmarkSpec(object):
         vm_count = FLAGS.num_vms
       disk_count = group_spec.get(DISK_COUNT, DEFAULT_COUNT)
 
-      try:
-        # First create the Static VMs.
-        if STATIC_VMS in group_spec:
-          static_vm_specs = group_spec[STATIC_VMS][:vm_count]
-          for static_vm_spec_index, spec_kwargs in enumerate(static_vm_specs):
-            vm_spec = static_vm.StaticVmSpec(
-                '{0}.{1}.{2}.{3}[{4}]'.format(self.name, VM_GROUPS, group_name,
-                                              STATIC_VMS, static_vm_spec_index),
-                **spec_kwargs)
-            static_vm_class = static_vm.GetStaticVmClass(vm_spec.os_type)
-            vms.append(static_vm_class(vm_spec))
+      # First create the Static VMs.
+      if STATIC_VMS in group_spec:
+        static_vm_specs = group_spec[STATIC_VMS][:vm_count]
+        for static_vm_spec_index, spec_kwargs in enumerate(static_vm_specs):
+          vm_spec = static_vm.StaticVmSpec(
+              '{0}.{1}.{2}.{3}[{4}]'.format(self.name, VM_GROUPS, group_name,
+                                            STATIC_VMS, static_vm_spec_index),
+              **spec_kwargs)
+          static_vm_class = static_vm.GetStaticVmClass(vm_spec.os_type)
+          vms.append(static_vm_class(vm_spec))
 
-        os_type = self._GetOsTypeForGroup(group_name)
-        cloud = self._GetCloudForGroup(group_name)
-        providers.LoadProvider(cloud.lower())
+      os_type = self._GetOsTypeForGroup(group_name)
+      cloud = self._GetCloudForGroup(group_name)
+      providers.LoadProvider(cloud.lower())
 
-        # This throws an exception if the benchmark is not
-        # supported.
-        self._CheckBenchmarkSupport(cloud)
+      # This throws an exception if the benchmark is not
+      # supported.
+      self._CheckBenchmarkSupport(cloud)
 
-        # Then create a VmSpec and possibly a DiskSpec which we can
-        # use to create the remaining VMs.
-        vm_spec_class = virtual_machine.GetVmSpecClass(cloud)
-        vm_spec = vm_spec_class(
-            '.'.join((self.name, VM_GROUPS, group_name, VM_SPEC, cloud)),
-            FLAGS, **group_spec[VM_SPEC][cloud])
+      # Then create a VmSpec and possibly a DiskSpec which we can
+      # use to create the remaining VMs.
+      vm_spec_class = virtual_machine.GetVmSpecClass(cloud)
+      vm_spec = vm_spec_class(
+          '.'.join((self.name, VM_GROUPS, group_name, VM_SPEC, cloud)),
+          FLAGS, **group_spec[VM_SPEC][cloud])
 
-        if DISK_SPEC in group_spec:
-          disk_spec_class = disk.GetDiskSpecClass(cloud)
-          disk_spec = disk_spec_class(**group_spec[DISK_SPEC][cloud])
-          disk_spec.ApplyFlags(FLAGS)
-          # disk_spec.disk_type may contain legacy values that were
-          # copied from FLAGS.scratch_disk_type into
-          # FLAGS.data_disk_type at the beginning of the run. We
-          # translate them here, rather than earlier, because here is
-          # where we know what cloud we're using and therefore we're
-          # able to pick the right translation table.
-          disk_spec.disk_type = disk.WarnAndTranslateDiskTypes(
-              disk_spec.disk_type, cloud)
-        else:
-          disk_spec = None
-
-      except TypeError as e:
-        # This is what we get if one of the kwargs passed into a spec's
-        # __init__ method was unexpected.
-        raise ValueError(
-            'Config contained an unexpected parameter. Error message:\n%s' % e)
+      if DISK_SPEC in group_spec:
+        disk_spec_class = disk.GetDiskSpecClass(cloud)
+        disk_spec = disk_spec_class(
+            '.'.join((self.name, VM_GROUPS, group_name, DISK_SPEC, cloud)),
+            FLAGS, **group_spec[DISK_SPEC][cloud])
+        # disk_spec.disk_type may contain legacy values that were
+        # copied from FLAGS.scratch_disk_type into
+        # FLAGS.data_disk_type at the beginning of the run. We
+        # translate them here, rather than earlier, because here is
+        # where we know what cloud we're using and therefore we're
+        # able to pick the right translation table.
+        disk_spec.disk_type = disk.WarnAndTranslateDiskTypes(
+            disk_spec.disk_type, cloud)
+      else:
+        disk_spec = None
 
       # Create the remaining VMs using the specs we created earlier.
       for _ in xrange(vm_count - len(vms)):
