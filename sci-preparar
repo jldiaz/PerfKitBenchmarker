@@ -1,0 +1,7 @@
+if [ $# -lt 1  ]
+  then
+    echo "Falta especificar el run uri"
+    exit 1
+fi
+./pkb.py --run_stage=prepare --timing_measurements=runtimes --cloud=Azure --benchmarks=scimark2 --run_uri=$1
+
