@@ -1,1 +1,1 @@
-./pkb.py --benchmark_config_file=hadoop-config/D1_8.yaml --run_stage=cleanup --timing_measurements=runtimes,timestamps --run_uri=$1
+./pkb.py --benchmark_config_file=hadoop-config/D1_4.yaml --run_stage=cleanup --timing_measurements=runtimes,timestamps --run_uri=$1

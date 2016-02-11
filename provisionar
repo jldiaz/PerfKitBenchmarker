@@ -1,1 +1,1 @@
-./pkb.py --benchmark_config_file=hadoop-config/D1_8.yaml --run_stage=provision --timing_measurements=runtimes,timestamps
+./pkb.py --benchmark_config_file=hadoop-config/D1_4.yaml --run_stage=provision --timing_measurements=runtimes,timestamps
