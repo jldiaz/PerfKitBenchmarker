@@ -11,28 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-"""Test that we can generate help for PKB."""
-
-import os
-import unittest
+"""Supported types of operating systems that a VM may host."""
 
 from perfkitbenchmarker import flags
-# Import pkb to add all flag definitions to flags.FLAGS.
-from perfkitbenchmarker import pkb  # NOQA
 
 
-class HelpTest(unittest.TestCase):
-  def testHelp(self):
-    # Test that help generation finishes without errors
-    flags.FLAGS.GetHelp()
+DEBIAN = 'debian'
+RHEL = 'rhel'
+UBUNTU_CONTAINER = 'ubuntu_container'
+WINDOWS = 'windows'
+
+ALL = DEBIAN, RHEL, UBUNTU_CONTAINER, WINDOWS
 
 
-class HelpXMLTest(unittest.TestCase):
-  def testHelpXML(self):
-    with open(os.devnull, 'w') as out:
-      flags.FLAGS.WriteHelpInXMLFormat(outfile=out)
-
-
-if __name__ == '__main__':
-  unittest.main()
+flags.DEFINE_enum(
+    'os_type', DEBIAN, ALL,
+    'The VM\'s OS type. Ubuntu\'s os_type is "debian" because it is largely '
+    'built on Debian and uses the same package manager. Likewise, CentOS\'s '
+    'os_type is "rhel". In general if two OS\'s use the same package manager, '
+    'and are otherwise very similar, the same os_type should work on both of '
+    'them.')
