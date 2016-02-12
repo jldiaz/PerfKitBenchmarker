@@ -455,6 +455,15 @@ class BaseLinuxMixin(virtual_machine.BaseOsMixin):
         'cat /proc/cpuinfo | grep processor | wc -l')
     return int(stdout)
 
+  def _GetCpuInfo(self):
+    """Returns the brand and model of CPU as reported by /proc/cpuinfo
+
+    This method does not cache results (unlike "cpu_info").
+    """
+    stdout, _ = self.RemoteCommand(
+        'cat /proc/cpuinfo | grep "model name" | tail -1')
+    return stdout.split(":")[1].strip()
+
   def _GetTotalMemoryKb(self):
     """Returns the amount of physical memory on the VM in Kilobytes.
 

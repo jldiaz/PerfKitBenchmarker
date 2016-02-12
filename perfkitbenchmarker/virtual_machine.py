@@ -347,6 +347,7 @@ class BaseOsMixin(object):
     self._reachable = {}
     self._total_memory_kb = None
     self._num_cpus = None
+    self._cpu_info = None
 
   @abc.abstractmethod
   def RemoteCommand(self, command, should_log=False, ignore_failure=False,
@@ -532,6 +533,25 @@ class BaseOsMixin(object):
     """Returns the number of logical CPUs on the VM.
 
     This method does not cache results (unlike "num_cpus").
+    """
+    raise NotImplementedError()
+
+  @property
+  def cpu_info(self):
+    """Gets the model of CPU on the VM.
+
+    Returns:
+      The model of CPU on the VM.
+    """
+    if self._cpu_info is None:
+      self._cpu_info = self._GetCpuInfo()
+    return self._cpu_info
+
+  @abc.abstractmethod
+  def _GetCpuInfo(self):
+    """Returns the model of CPU on the VM.
+
+    This method does not cache results (unlike "cpu_info").
     """
     raise NotImplementedError()
 
