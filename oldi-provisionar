@@ -1,0 +1,7 @@
+if [ $# -lt 1  ]
+  then
+    echo "Falta especificar tipo de maquina"
+    exit 1
+fi
+./pkb.py --machine_type=$1 --run_stage=provision --timing_measurements=runtimes --cloud=Azure --benchmarks=qps_oldisim --qps_oldisim_num_leaves=1
+
