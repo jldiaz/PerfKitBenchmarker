@@ -87,10 +87,15 @@ def InstallAndBuild(vm):
     vm: A vm instance that runs oldisim.
   """
   logging.info('prepare oldisim on %s', vm)
-  vm.Install('oldisim_dependencies')
+  # This only installs the required libraries, and not the dev tools
+  # because the pre-compiled binaries will be uploaded instead of
+  # built
+  vm.Install('my_oldisim_dependencies')
+  vm.PushFile('/tmp/oldisim-binaries-ubuntu.tgz', '')
   vm.RemoteCommand('git clone --recursive %s' % OLDISIM_GIT)
-  vm.RemoteCommand('cd %s && git checkout %s && scons' %
-                   (OLDISIM_DIR, OLDISIM_VERSION))
+  vm.RemoteCommand('tar xvf oldisim-binaries-ubuntu.tgz')
+  # vm.RemoteCommand('cd %s && git checkout %s && scons' %
+  #                 (OLDISIM_DIR, OLDISIM_VERSION))
 
 
 def Prepare(benchmark_spec):
